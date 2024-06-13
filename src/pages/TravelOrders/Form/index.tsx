@@ -24,6 +24,8 @@ import MultipleComboBox from "@/components/Form/MultipleComboBox"
 import { useEffect, useState } from "react"
 import { TravelOrder } from "@/data/travelOrders"
 import { format, parseISO } from "date-fns"
+import TextInput from "@/components/Form/TextInput"
+import TextArea from "@/components/Form/TextArea"
 
 type TravelOrderProps = {
   initialValues: TravelOrder
@@ -248,7 +250,10 @@ const Form = ({ initialValues }: TravelOrderProps) => {
                 <FormItem>
                   <FormLabel>Purpose</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
+                    <TextArea 
+                      {...field}
+                      invalidMessage={form.formState.errors.purpose?.message}
+                     />
                   </FormControl>
                   <FormDescription>
   
