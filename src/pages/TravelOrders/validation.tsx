@@ -1,29 +1,33 @@
 import { z } from "zod"
 
 export const formSchema = z.object({
-    travel_type: z.string({
-        required_error: "Travel type is required"
-    }),
-    purpose: z.string({
-        required_error: "Purpose is required"
-    }),
-    start_date: z.string({
-        required_error: "Start date is required",
-        invalid_type_error: "Invalid date!",
-    }),
-    end_date: z.string({
-        required_error: "End date is required",
-        invalid_type_error: "Invalid date!",
-    }),
-    withVehicle: z.boolean(),
-    staffs: z.array(z.string()).nonempty("Employees cannot be empty")
-})
+    travel_type: z.string().min(1, { message: "Travel type is required" }),
+    purpose: z.string().min(1, { message: "Purpose is required" }),
+    travel_date: z.object(
+        {
+            from: z.date(),
+            to: z.date(),
+        },
+        {
+          required_error: "Please select a date range",
+        }
+      ),
+    withVehicle: z.boolean().optional(),
+    staffs: z.array(z.string()).min(1, { message: "Must include at least one employee" })
+    })
 
 export const initialValues = {
+    id: 0,
+    reference_no: '',
     travel_type: '',
     purpose: '',
-    start_date: '',
+    travel_date: {
+        from: '',
+        to: '',
+    },
     end_date: '',
+    created_by: '',
+    date_created: '',
     withVehicle: false,
     staffs: []
-  }
+}

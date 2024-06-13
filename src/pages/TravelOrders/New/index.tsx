@@ -8,6 +8,8 @@ import {
 
 import Form from "../Form"
 
+import { initialValues } from "../validation"
+
 const New = () => {
 
   return (
@@ -17,7 +19,7 @@ const New = () => {
           <CardDescription>Accomplish the form below to add new travel order</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form />
+        <Form initialValues={initialValues} />
       </CardContent>
     </Card>
   )

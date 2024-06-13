@@ -15,7 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Button } from "../ui/button"
-import { useState, forwardRef, useEffect } from "react"
+import { useState, forwardRef } from "react"
 import { Separator } from "../ui/separator"
 
 interface Item {
@@ -26,28 +26,30 @@ interface Item {
 interface MultipleComboBoxProps {
     items: Item[],
     name: string,
-    onChange: (selectedItems: string[]) => void
+    onChange: (selectedItems: string[]) => void,
+    value: string[],
+    invalidMessage?: string
 }
 
 const MultipleComboBox = forwardRef<HTMLDivElement, MultipleComboBoxProps>(
   ({ 
     items,
     name,
-    onChange
+    onChange,
+    value,
+    invalidMessage
    }, ref) => {
     
-      const [open, setOpen] = useState(false)
-      const [selectedValues, setSelectedValues] = useState<string[]>([])
-
-      useEffect(() => {
-        onChange(selectedValues)
-      }, [selectedValues, onChange])
+      const [open, setOpen] = useState<boolean>(false)
+      const [selectedValues, setSelectedValues] = useState<string[]>(value)
+      const [inputValue, setInputValue] = useState<string>("")
     
       const toggleSelection = (currentValue: string) => {
         const updatedValues = selectedValues.includes(currentValue)
           ? selectedValues.filter((value) => value !== currentValue)
           : [...selectedValues, currentValue];
-        setSelectedValues(updatedValues);
+        setSelectedValues(updatedValues)
+        onChange(updatedValues)
       }
 
       const toggleSelectAll = () => {
@@ -55,7 +57,8 @@ const MultipleComboBox = forwardRef<HTMLDivElement, MultipleComboBoxProps>(
           selectedValues.length === items.length
             ? []
             : items.map((item) => item.value);
-        setSelectedValues(updatedValues);
+        setSelectedValues(updatedValues)
+        onChange(updatedValues)
       }
 
       const getToggleLabel = () => {
@@ -73,6 +76,10 @@ const MultipleComboBox = forwardRef<HTMLDivElement, MultipleComboBoxProps>(
         return `${selectedValues.length} selected`
       }
 
+      const filteredItems = items.filter(item =>
+        item.label.toLowerCase().includes(inputValue.toLowerCase())
+      )
+
   return (
     <div ref={ref}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -81,7 +88,7 @@ const MultipleComboBox = forwardRef<HTMLDivElement, MultipleComboBoxProps>(
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className=" justify-between w-full"
+              className={`justify-between w-full ${invalidMessage ? 'border-red-500' : ''}`}
           >
               {getButtonLabel()}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -89,42 +96,46 @@ const MultipleComboBox = forwardRef<HTMLDivElement, MultipleComboBoxProps>(
           </PopoverTrigger>
           <PopoverContent className="w-[200px] p-0">
           <Command>
-              <CommandInput placeholder={`Select ${name}...`} />
+              <CommandInput 
+                placeholder={`Select ${name}...`} 
+                onValueChange={setInputValue}
+                value={inputValue}
+              />
               <CommandList>
-              <CommandItem
-                value="toggle-select"
-                onSelect={() => {
-                  toggleSelectAll();
-                  setOpen(false); // Close the popover after toggling
-                }}
-                className="text-right"
-              >
-                {getToggleLabel()}
-              </CommandItem>
-                  <Separator />
-                  <CommandEmpty>{`No ${name} found`}</CommandEmpty>
-                  <CommandGroup>
-                      {items.map((item) => (
-                      <CommandItem
-                          key={item.value}
-                          value={item.value}
-                          onSelect={() => {
-                          toggleSelection(item.value)
-                          // Do not close the popover on select
-                          }}
-                      >
-                          <Check
-                          className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedValues.includes(item.value)
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                          />
-                          {item.label}
-                      </CommandItem>
+                <CommandItem
+                  value="toggle-select"
+                  onSelect={() => {
+                    toggleSelectAll();
+                    setOpen(false); // Close the popover after toggling
+                  }}
+                  className="text-right"
+                >
+                  {getToggleLabel()}
+                </CommandItem>
+                <Separator />
+                <CommandEmpty>{`No ${name}s found`}</CommandEmpty>
+                <CommandGroup>
+                  {filteredItems.map((item) => (
+                    <CommandItem
+                      key={item.label}
+                      value={item.label}
+                      onSelect={() => {
+                        toggleSelection(item.value)
+                        // Do not close the popover on select
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedValues.includes(item.value)
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {item.label}
+                    </CommandItem>
                   ))}
-                  </CommandGroup>
+                </CommandGroup>
               </CommandList>
           </Command>
           </PopoverContent>

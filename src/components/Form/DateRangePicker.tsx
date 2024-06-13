@@ -1,5 +1,5 @@
 import { useState, forwardRef } from "react";
-import { format } from "date-fns";
+import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
@@ -9,18 +9,23 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DateRangePickerProps {
-  onChange: (dateRange: DateRange | undefined) => void;
+  onChange: (dateRange: DateRange | undefined) => void,
+  value: DateRange | undefined,
+  invalidMessage?: string
 }
 
 const DateRangePicker = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & DateRangePickerProps>(
-  ({ className, onChange }, ref) => {
-    const [selectedDateRange, setSelectedDateRange] = useState<DateRange | undefined>({
-      from: new Date(),
-      to: new Date(),
-    })
+  ({ 
+    className, 
+    onChange,
+    value,
+    invalidMessage
+  }, ref) => {
+
+    const [date, setDate] = useState<DateRange | undefined>(value)
 
     const handleSelectDateRange = (dateRange: DateRange | undefined) => {
-      setSelectedDateRange(dateRange)
+      setDate(dateRange)
       onChange(dateRange)
     }
 
@@ -32,19 +37,19 @@ const DateRangePicker = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivE
               id="date"
               variant={"outline"}
               className={cn(
-                "w-full justify-start text-left font-normal",
-                !selectedDateRange && "text-muted-foreground"
+                `w-full justify-start text-left font-normal ${invalidMessage ? 'border-red-500' : ''}`,
+                !date && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDateRange && selectedDateRange?.from ? (
-                selectedDateRange.to ? (
+              {date?.from ? (
+                date.to ? (
                   <>
-                    {format(selectedDateRange.from, "MMMM d, y")} -{" "}
-                    {format(selectedDateRange.to, "MMMM d, y")}
+                    {format(date.from, "LLL dd, y")} -{" "}
+                    {format(date.to, "LLL dd, y")}
                   </>
                 ) : (
-                  format(selectedDateRange.from, "MMMM d, y")
+                  format(date.from, "LLL dd, y")
                 )
               ) : (
                 <span>Pick a date</span>
@@ -55,8 +60,8 @@ const DateRangePicker = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivE
             <Calendar
               initialFocus
               mode="range"
-              defaultMonth={selectedDateRange?.from}
-              selected={selectedDateRange}
+              defaultMonth={date?.from}
+              selected={date}
               onSelect={handleSelectDateRange}
               numberOfMonths={2}
             />

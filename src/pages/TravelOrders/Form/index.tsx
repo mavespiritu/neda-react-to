@@ -23,16 +23,22 @@ import { Label } from "@/components/ui/label"
 import MultipleComboBox from "@/components/Form/MultipleComboBox"
 import { useEffect, useState } from "react"
 import { TravelOrder } from "@/data/travelOrders"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 
-type FormProps = {
-  initialValues?: TravelOrder
+type TravelOrderProps = {
+  initialValues: TravelOrder
 }
 
-const Form = ({ initialValues }: FormProps) => {
+const Form = ({ initialValues }: TravelOrderProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialValues ? { ...initialValues } : {},
+    defaultValues: {
+      ...initialValues,
+      travel_date: {
+        from: initialValues.travel_date.from ? parseISO(initialValues.travel_date.from) : new Date(),
+        to: initialValues.travel_date.to ? parseISO(initialValues.travel_date.to) : new Date(),
+      }
+    }
   })
 
   const travelTypes = [
@@ -115,15 +121,27 @@ const Form = ({ initialValues }: FormProps) => {
   ]
 
   const [selectedStaffs, setSelectedStaffs] = useState<string[]>([])
-  const [selectedDates, setSelectedDates] = useState<string>('')
+  const [selectedDates, setSelectedDates] = useState<string>("")
   const [recommendingApprovals, setRecommendingApprovals] = useState<string[]>([])
   const [selectedApprover, setSelectedApprover] = useState<{ name: string, position: string } | null>(null)
 
   useEffect(() => {
-    console.log("Initial Values:", initialValues);
-    console.log("Staffs from initialValues:", initialValues?.staffs);
-    console.log("Staffs from form:", form.getValues("staffs"));
-  }, [form, initialValues])
+    setSelectedStaffs(initialValues.staffs)
+    updateRecommendingApprovals(initialValues.staffs)
+    updateFinalApprover(initialValues.staffs)
+  }, [initialValues.staffs])
+
+  useEffect(() => {
+    if (initialValues.travel_date) {
+      const { from, to } = initialValues.travel_date;
+      const formattedStartDate = from.length > 0 ? format(from, "MMMM d, yyyy") : format(new Date(), "MMMM d, yyyy")
+      const formattedEndDate = to ? format(to, "MMMM d, yyyy") : formattedStartDate;
+      const formattedDateRangeDisplay = to ? formattedStartDate === formattedEndDate ? formattedStartDate : `${formattedStartDate} to ${formattedEndDate}` : formattedEndDate
+
+      setSelectedDates(formattedDateRangeDisplay)
+    }
+
+  }, [initialValues.travel_date])
 
   const handleStaffsChange = (selectedItems: string[]) => {
     setSelectedStaffs(selectedItems)
@@ -131,18 +149,16 @@ const Form = ({ initialValues }: FormProps) => {
     updateFinalApprover(selectedItems)
   }
 
-  const handleDateRangeChange = (selectedDateRange: any) => {
-    if (selectedDateRange) {
-      const { from, to } = selectedDateRange;
-      const formattedStartDate = `${format(from, "yyyy-MM-dd")}`
-      const formattedEndDate = to ? `${format(to, "yyyy-MM-dd")}` : formattedStartDate
-      const formattedDateRangeDisplay = to ? from.getTime() === to.getTime() ? `${format(from, "MMMM d, y")}` : `${format(from, "MMMM d, y")} to ${format(to, "MMMM d, y")}` : `${format(from, "MMMM d, y")}`
-      form.setValue("start_date", formattedStartDate)
-      form.setValue("end_date", formattedEndDate)
+  const handleDateRangeChange = (dateRange: any) => {
+    if (dateRange) {
+      const { from, to } = dateRange
+      const formattedStartDate = `${format(from, "MMMM d, yyyy")}`
+      const formattedEndDate = to ? `${format(to, "MMMM d, yyyy")}` : formattedStartDate
+      const formattedDateRangeDisplay = to ? formattedStartDate === formattedEndDate ? formattedStartDate : `${formattedStartDate} to ${formattedEndDate}` : formattedEndDate
       setSelectedDates(formattedDateRangeDisplay)
     }
   }
-  
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     // Do something with the form values.
     // ✅ This will be type-safe and validated.
@@ -158,7 +174,7 @@ const Form = ({ initialValues }: FormProps) => {
     setRecommendingApprovals(newApprovals)
   }
 
-  const updateFinalApprover = (selectedStaffs: string[]) => {
+  const updateFinalApprover = (selectedStaffs: string[]) => { 
     const approversSet = new Set<string>()
     selectedStaffs.forEach(staffValue => {
       const staff = staffs.find((s) => s.value === staffValue)
@@ -204,17 +220,24 @@ const Form = ({ initialValues }: FormProps) => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
-              name="start_date"
+              name="travel_date"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Date of Travel</FormLabel>
                   <FormControl>
-                    <DateRangePicker {...field} onChange={handleDateRangeChange} />
+                    <DateRangePicker 
+                      {...field} 
+                      onChange={(dateRange) => {
+                        field.onChange(dateRange)
+                        handleDateRangeChange(dateRange)
+                      }} 
+                      invalidMessage={form.formState.errors.travel_date?.message}
+                    />
                   </FormControl>
                   <FormDescription>
                     
                   </FormDescription>
-                  <FormMessage />
+                  <FormMessage /> 
                 </FormItem>
               )}
             />
@@ -228,7 +251,7 @@ const Form = ({ initialValues }: FormProps) => {
                     <Textarea {...field} />
                   </FormControl>
                   <FormDescription>
-                    
+  
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -237,11 +260,20 @@ const Form = ({ initialValues }: FormProps) => {
             <FormField
               control={form.control}
               name="staffs"
-              render={({ field }) => (
+              render={({ field: { onChange, value } }) => (
                 <FormItem>
                   <FormLabel>Staff Included</FormLabel>
                   <FormControl>
-                    <MultipleComboBox {...field} items={staffs} onChange={handleStaffsChange} name="employee"/>
+                    <MultipleComboBox 
+                      items={staffs}
+                      onChange={(selectedItems) => {
+                        onChange(selectedItems)
+                        handleStaffsChange(selectedItems)
+                      }}
+                      value={value} 
+                      invalidMessage={form.formState.errors.staffs?.message}
+                      name="employee"
+                    />
                   </FormControl>
                   <FormDescription>
                     
@@ -257,7 +289,12 @@ const Form = ({ initialValues }: FormProps) => {
                 <FormItem>
                   <FormLabel>Travel Type</FormLabel>
                   <FormControl>
-                    <SingleComboBox {...field} items={travelTypes} name="travel type"/>
+                    <SingleComboBox 
+                      {...field} 
+                      items={travelTypes} 
+                      invalidMessage={form.formState.errors.travel_type?.message}
+                      name="travel type"
+                    />
                   </FormControl>
                   <FormDescription>
                     
@@ -297,7 +334,7 @@ const Form = ({ initialValues }: FormProps) => {
             <small className="font-semibold">NATIONAL ECONOMIC AND DEVELOPMENT AUTHORITY</small>
             <small>Regional Office 1</small>
             <small>Guerrero Road, City of San Fernando, La Union</small>
-            <small className="border-2 border-black p-1 w-1/4 mx-auto mt-2 font-semibold">TRAVEL ORDER NO. </small>
+            <small className="border-2 border-black p-1 w-max mx-auto mt-2 font-semibold">TRAVEL ORDER NO. 212222</small>
           </div>
           <div className="flex flex-col">
             <div className="flex justify-end items-end gap-2">

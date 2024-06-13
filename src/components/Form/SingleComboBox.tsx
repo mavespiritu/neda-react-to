@@ -24,13 +24,21 @@ interface Item {
 interface SingleComboBoxProps {
   items: Item[],
   name: string,
-  onChange: (selectedItem: string | null) => void
+  onChange: (selectedItem: string | null) => void,
+  value: string,
+  invalidMessage?: string
 }
 
 const SingleComboBox = forwardRef<HTMLDivElement, SingleComboBoxProps>(
-  ({ items, name, onChange }, ref) => {
+  ({ 
+    items,
+    name, 
+    onChange,
+    value,
+    invalidMessage
+   }, ref) => {
     const [open, setOpen] = useState(false);
-    const [selectedValue, setSelectedValue] = useState<string | null>(null);
+    const [selectedValue, setSelectedValue] = useState<string | null>(value);
 
     const toggleSelection = (currentValue: string) => {
       setSelectedValue((prevValue) => (prevValue === currentValue ? null : currentValue));
@@ -46,7 +54,7 @@ const SingleComboBox = forwardRef<HTMLDivElement, SingleComboBoxProps>(
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="justify-between w-full"
+              className={`justify-between w-full ${invalidMessage ? 'border-red-500' : ''}`}
               onClick={() => setOpen((prevOpen) => !prevOpen)}
             >
               {selectedValue ? items.find((item) => item.value === selectedValue)?.label : `Select ${name}...`}
